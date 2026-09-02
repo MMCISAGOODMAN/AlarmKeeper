@@ -1,0 +1,19 @@
+[Unit]
+Description=AlertMate alert aggregator
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=alertmate
+Group=alertmate
+WorkingDirectory=/opt/alertmate
+EnvironmentFile=-/opt/alertmate/.env
+ExecStart=/usr/bin/python3 /opt/alertmate/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

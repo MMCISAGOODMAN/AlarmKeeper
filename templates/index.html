@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlertMate · 告警控制台</title>
+  <style>
+    :root {
+      --bg0: #070b12;
+      --bg1: #0c1220;
+      --panel: rgba(16, 24, 40, 0.82);
+      --panel-solid: #121a2b;
+      --line: rgba(120, 160, 210, 0.16);
+      --text: #eef4fc;
+      --muted: #8b9cb3;
+      --accent: #4cc2ff;
+      --accent-2: #7c6cff;
+      --ok: #3ee0a0;
+      --bad: #ff6b7a;
+      --warn: #f5c56e;
+      --p0: #ff5d6c;
+      --p1: #ffb020;
+      --p2: #6b8aff;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "SF Pro Display", "PingFang SC", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(76, 194, 255, 0.16), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(124, 108, 255, 0.14), transparent 50%),
+        radial-gradient(700px 400px at 50% 110%, rgba(62, 224, 160, 0.08), transparent 45%),
+        linear-gradient(180deg, var(--bg1), var(--bg0));
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 56px; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(145deg, #4cc2ff, #6d7bff 55%, #3ee0a0);
+      box-shadow: 0 8px 24px rgba(76, 194, 255, 0.28);
+      position: relative;
+    }
+    .logo::after {
+      content: "";
+      position: absolute; inset: 11px 17px 11px 17px;
+      border-radius: 2px;
+      background: #071018;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.12);
+    }
+    .brand h1 { margin: 0; font-size: 22px; letter-spacing: 0.04em; font-weight: 700; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    .status {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px;
+      border: 1px solid var(--line); background: rgba(8, 12, 20, 0.55);
+      color: var(--muted);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .pill.ok { color: var(--ok); border-color: rgba(62, 224, 160, 0.28); }
+    .pill.ok .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .pill.bad { color: var(--bad); border-color: rgba(255, 107, 122, 0.3); }
+    .pill.bad .dot { background: var(--bad); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+    .stat .k { color: var(--muted); font-size: 12px; }
+    .stat .v { margin-top: 8px; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+    .stat .hint { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    main {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .rank { display: grid; gap: 12px; }
+    .rank-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; }
+    .idx {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: grid; place-items: center;
+      background: rgba(76, 194, 255, 0.1);
+      color: var(--accent); font-size: 12px; font-weight: 700;
+    }
+    .idx.gold { background: rgba(245, 197, 110, 0.16); color: var(--warn); }
+    .meta { min-width: 0; }
+    .meta .name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta .sub { color: var(--muted); font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-wrap { height: 6px; border-radius: 99px; background: rgba(255,255,255,0.06); margin-top: 6px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #4cc2ff, #7c6cff); }
+    .score { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+    form { display: grid; gap: 12px; }
+    label { font-size: 12px; color: var(--muted); display: block; }
+    input, select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(7, 11, 18, 0.72);
+      color: var(--text);
+      outline: none;
+    }
+    input:focus, select:focus { border-color: rgba(76, 194, 255, 0.55); box-shadow: 0 0 0 3px rgba(76, 194, 255, 0.12); }
+    button {
+      margin-top: 4px;
+      background: linear-gradient(180deg, #5dcbff, #2ea8e6);
+      color: #041018;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.06); }
+    .wide { grid-column: 1 / -1; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 500; font-size: 12px; }
+    tbody tr:hover { background: rgba(255,255,255,0.025); }
+    .lvl {
+      display: inline-flex; min-width: 34px; justify-content: center;
+      padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 700;
+    }
+    .lvl-P0 { background: rgba(255, 93, 108, 0.16); color: var(--p0); }
+    .lvl-P1 { background: rgba(255, 176, 32, 0.16); color: var(--p1); }
+    .lvl-P2 { background: rgba(107, 138, 255, 0.16); color: var(--p2); }
+    .lvl-- { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .chip {
+      display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 650;
+    }
+    .chip-yes { background: rgba(62, 224, 160, 0.14); color: var(--ok); }
+    .chip-no { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .chip-mute { background: rgba(245, 197, 110, 0.14); color: var(--warn); }
+    .empty {
+      color: var(--muted); font-size: 13px; padding: 18px 4px 8px;
+      text-align: center;
+    }
+    .cfg {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .cfg-item {
+      background: rgba(7, 11, 18, 0.45);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .cfg-item dt { color: var(--muted); font-size: 11px; margin: 0 0 6px; }
+    .cfg-item dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+    .scroll { overflow-x: auto; }
+    @media (max-width: 900px) {
+      .stats, main { grid-template-columns: 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>AlertMate</h1>
+          <p>告警聚合控制台 · {{ today }}</p>
+        </div>
+      </div>
+      <div class="status">
+        {% if redis_ok %}
+        <span class="pill ok"><span class="dot"></span>Redis 正常</span>
+        {% else %}
+        <span class="pill bad"><span class="dot"></span>Redis 异常</span>
+        {% endif %}
+        <span class="pill {% if wecom_count %}ok{% else %}bad{% endif %}">
+          <span class="dot"></span>企业微信 {{ wecom_count }} 路
+        </span>
+        <span class="pill {% if dingtalk_on %}ok{% endif %}">
+          <span class="dot"></span>钉钉 {{ "已开启" if dingtalk_on else "关闭" }}
+        </span>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="k">今日告警次数</div>
+        <div class="v">{{ today_count }}</div>
+        <div class="hint">按指纹累计</div>
+      </div>
+      <div class="stat">
+        <div class="k">今日 TOP 种类</div>
+        <div class="v">{{ top|length }}</div>
+        <div class="hint">最多展示 5 条</div>
+      </div>
+      <div class="stat">
+        <div class="k">本进程已推送</div>
+        <div class="v">{{ recent_sent }}</div>
+        <div class="hint">最近 50 条内</div>
+      </div>
+      <div class="stat">
+        <div class="k">最近记录</div>
+        <div class="v">{{ recent|length }}</div>
+        <div class="hint">重启后清空</div>
+      </div>
+    </div>
+
+    <main>
+      <section>
+        <h2>今日告警 TOP 5</h2>
+        {% if top %}
+        <div class="rank">
+          {% for member, score in top %}
+          {% set parts = member.split("|") %}
+          <div class="rank-row">
+            <div class="idx {% if loop.index == 1 %}gold{% endif %}">{{ loop.index }}</div>
+            <div class="meta">
+              <div class="name">{{ parts[1] if parts|length > 1 else member }}</div>
+              <div class="sub">{{ parts[0] if parts else "" }}{% if parts|length > 2 %} · {{ parts[2] }}{% endif %}</div>
+              <div class="bar-wrap">
+                <div class="bar" style="width: {{ (score / top_max * 100)|int }}%"></div>
+              </div>
+            </div>
+            <div class="score">{{ score|int }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">今天还没有告警进入统计</div>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>设置静默</h2>
+        <form method="post" action="/ui/silence">
+          <label>告警名称 name
+            <input name="name" required placeholder="例如 CPU high">
+          </label>
+          <label>目标 target
+            <input name="target" required placeholder="例如 10.0.0.1">
+          </label>
+          <label>时长
+            <select name="duration_seconds">
+              <option value="900">15 分钟</option>
+              <option value="3600" selected>1 小时</option>
+              <option value="14400">4 小时</option>
+              <option value="86400">24 小时</option>
+            </select>
+          </label>
+          <button type="submit">静默该告警</button>
+        </form>
+      </section>
+
+      <section class="wide">
+        <h2>最近处理记录</h2>
+        {% if recent %}
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>时间</th><th>级别</th><th>名称</th><th>目标</th>
+                <th>次数</th><th>状态</th><th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in recent %}
+              <tr>
+                <td>{{ row.time }}</td>
+                <td><span class="lvl lvl-{{ row.level }}">{{ row.level }}</span></td>
+                <td>{{ row.name }}</td>
+                <td>{{ row.target }}</td>
+                <td>{{ row.count }}</td>
+                <td>
+                  {% if row.silenced %}
+                  <span class="chip chip-mute">静默</span>
+                  {% elif row.sent %}
+                  <span class="chip chip-yes">已推送</span>
+                  {% else %}
+                  <span class="chip chip-no">未推送</span>
+                  {% endif %}
+                </td>
+                <td>{{ row.reason or row.alert_type or "" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty">还没有处理过告警，用 POST /alert 推一条即可出现在这里</div>
+        {% endif %}
+      </section>
+
+      <section class="wide">
+        <h2>当前配置（脱敏）</h2>
+        <div class="cfg">
+          {% for key, value in config.items() %}
+          <div class="cfg-item">
+            <dt>{{ key }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

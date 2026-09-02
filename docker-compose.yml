@@ -1,0 +1,34 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  alertmate:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      HOST: 0.0.0.0
+      PORT: 8080
+      WECOM_WEBHOOKS: ${WECOM_WEBHOOKS:-}
+      DINGTALK_ENABLED: ${DINGTALK_ENABLED:-false}
+      DINGTALK_WEBHOOKS: ${DINGTALK_WEBHOOKS:-}
+      TZ: ${TZ:-Asia/Shanghai}
+
+volumes:
+  redis-data:
